@@ -1,0 +1,521 @@
+{
+  "info": {
+    "name": "Stok Sayım Sistemi API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api" },
+    { "key": "admin_token", "value": "" },
+    { "key": "staff_token", "value": "" },
+    { "key": "admin2_token", "value": "" },
+    { "key": "branch_id", "value": "" },
+    { "key": "warehouse_id", "value": "" },
+    { "key": "shelf_id", "value": "" },
+    { "key": "stock_count_id", "value": "" },
+    { "key": "item_id", "value": "" },
+    { "key": "item_id_1", "value": "" },
+    { "key": "barcode", "value": "0001234567890" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Giriş - Admin",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('admin_token', json.token);",
+              "pm.test('token doner', () => pm.expect(json.token).to.be.a('string'));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password\"\n}" },
+            "url": "{{base_url}}/login"
+          }
+        },
+        {
+          "name": "Giriş - Sayım Personeli",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('staff_token', pm.response.json().token);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"sayici\",\n  \"password\": \"password\"\n}" },
+            "url": "{{base_url}}/login"
+          }
+        },
+        {
+          "name": "Giriş - Diğer Şirket Admini",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('admin2_token', pm.response.json().token);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin2\",\n  \"password\": \"password\"\n}" },
+            "url": "{{base_url}}/login"
+          }
+        },
+        {
+          "name": "Giriş - Hatalı Şifre (401/422 Beklenir)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('basarisiz olmali', () => pm.expect(pm.response.code).to.be.oneOf([401, 422]));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"yanlis-sifre\"\n}" },
+            "url": "{{base_url}}/login"
+          }
+        },
+        {
+          "name": "Kim Girdi (/me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/me"
+          }
+        },
+        {
+          "name": "Çıkış Yap",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Şube - Depo - Raf",
+      "item": [
+        {
+          "name": "Şube Oluştur",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('branch_id', pm.response.json().id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"branch_code\": \"SB-002\",\n  \"name\": \"Postman Test Şubesi\",\n  \"address\": \"Test Mah. No:1\"\n}" },
+            "url": "{{base_url}}/branches"
+          }
+        },
+        {
+          "name": "Şube Oluştur - Aynı Kod (422 Beklenir)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('422 - tekrar kod reddedilmeli', () => pm.response.to.have.status(422));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"branch_code\": \"SB-002\",\n  \"name\": \"Tekrar Aynı Kod\"\n}" },
+            "url": "{{base_url}}/branches"
+          }
+        },
+        {
+          "name": "Şubeleri Listele",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/branches"
+          }
+        },
+        {
+          "name": "Depo Oluştur",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('warehouse_id', pm.response.json().id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"warehouse_code\": \"DP-002\",\n  \"name\": \"Postman Test Deposu\"\n}" },
+            "url": "{{base_url}}/branches/{{branch_id}}/warehouses"
+          }
+        },
+        {
+          "name": "Raf Oluştur",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('shelf_id', pm.response.json().id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"shelf_code\": \"B-01\"\n}" },
+            "url": "{{base_url}}/branches/{{branch_id}}/warehouses/{{warehouse_id}}/shelves"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Ürün / Barkod",
+      "item": [
+        {
+          "name": "Barkod ile Ürün Bul",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('urun adi doner', () => pm.expect(pm.response.json()).to.have.property('product_name'));"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/products/barcode/{{barcode}}"
+          }
+        },
+        {
+          "name": "Barkod ile Ürün Bul - Yok (404 Beklenir)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+              "pm.test('dogru mesaj', () => pm.expect(pm.response.json().message).to.eql('Bu barkoda ait ürün bulunamadı.'));"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/products/barcode/9999999999999"
+          }
+        },
+        {
+          "name": "Diğer Şirket Admini Aynı Barkodu Arar (404 Beklenir - izolasyon)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('404 - baska sirketin urunu gorunmemeli', () => pm.response.to.have.status(404));"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin2_token}}" }],
+            "url": "{{base_url}}/products/barcode/{{barcode}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Sayım Akışı",
+      "item": [
+        {
+          "name": "Sayım Oluştur (personel atanmış)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('stock_count_id', pm.response.json().id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Test Sayımı\",\n  \"branch_id\": {{branch_id}},\n  \"warehouse_id\": {{warehouse_id}},\n  \"start_date\": \"2026-07-15\",\n  \"end_date\": \"2026-07-20\",\n  \"shelf_ids\": [{{shelf_id}}],\n  \"user_ids\": [2]\n}" },
+            "url": "{{base_url}}/stock-counts"
+          },
+          "description": "user_ids içine sayici kullanıcısının id'sini yaz (seeder ile genelde 2 olur, /me ile teyit edebilirsin)."
+        },
+        {
+          "name": "Sayımı Başlat (status: in_progress)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));"
+            ]}
+          }],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}" },
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}"
+          }
+        },
+        {
+          "name": "Sayıcı: Atanmış Sayımları Listele",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('sadece atananlari gormeli', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{staff_token}}" }],
+            "url": "{{base_url}}/stock-counts"
+          }
+        },
+        {
+          "name": "Sayıcı: Barkod Okut (Scan) - İlk Okutma",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 Created (yeni kayit)', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('item_id', json.id);",
+              "pm.collectionVariables.set('item_id_1', json.id);",
+              "pm.test('counted_quantity 1', () => pm.expect(json.counted_quantity).to.eql(1));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staff_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"barcode\": \"{{barcode}}\"\n}" },
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}/items/scan"
+          }
+        },
+        {
+          "name": "Sayıcı: Aynı Barkodu Tekrar Okut (ayrı kayıt oluşturmalı)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 Created (ayri yeni kayit)', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('bu ayri bir satir, ayni satir guncellenmemis', () => pm.expect(json.id).to.not.eql(pm.collectionVariables.get('item_id_1')));",
+              "pm.test('bu satirin kendi miktari 1', () => pm.expect(json.counted_quantity).to.eql(1));",
+              "pm.collectionVariables.set('item_id', json.id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staff_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"barcode\": \"{{barcode}}\"\n}" },
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}/items/scan"
+          }
+        },
+        {
+          "name": "Sayıcı: Miktarı Elle Düzelt",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('miktar guncellendi', () => pm.expect(pm.response.json().counted_quantity).to.eql(17));"
+            ]}
+          }],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staff_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"counted_quantity\": 17\n}" },
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}/items/{{item_id}}"
+          }
+        },
+        {
+          "name": "Negatif Miktar Dene (422 Beklenir)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('422 - negatif reddedilmeli', () => pm.response.to.have.status(422));"
+            ]}
+          }],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staff_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"counted_quantity\": -5\n}" },
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}/items/{{item_id}}"
+          }
+        },
+        {
+          "name": "Yüksek Miktar Okut (Eşik Ayarlıysa 409 Beklenir — manuel)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "// Bu istek, Ayarlar ekranından bir 'scan_quantity_warning_threshold' set ettiysen anlamlı.",
+              "// Eşik ayarlı değilse 201 doner (uyarı yok), bu normaldir — otomatik assert etmiyoruz.",
+              "const status = pm.response.code;",
+              "if (status === 409) {",
+              "  pm.test('409 - onay isteniyor', () => pm.expect(status).to.eql(409));",
+              "  pm.test('mesaj ve esik bilgisi donuyor', () => {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json.status).to.eql('confirmation_required');",
+              "    pm.expect(json.threshold).to.be.a('number');",
+              "  });",
+              "} else {",
+              "  console.log('Eşik ayarlı değil ya da miktar eşiği aşmıyor, 409 beklenmedi — bu normal.');",
+              "}"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staff_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"barcode\": \"{{barcode}}\",\n  \"quantity\": 9999\n}" },
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}/items/scan"
+          }
+        },
+        {
+          "name": "Yüksek Miktarı Onaylayarak Okut (confirm: true)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('201 Created (onaylaninca kayit olusur)', () => pm.response.to.have.status(201));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staff_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"barcode\": \"{{barcode}}\",\n  \"quantity\": 9999,\n  \"confirm\": true\n}" },
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}/items/scan"
+          }
+        },
+        {
+          "name": "Sayımdaki Ürünleri Listele",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}/items"
+          }
+        },
+        {
+          "name": "Sayımı Tamamla",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}/complete"
+          }
+        },
+        {
+          "name": "Tamamlanmış Sayıma Kayıt Ekle (422 Beklenir)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('422 - tamamlanmis sayima eklenmemeli', () => pm.response.to.have.status(422));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staff_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"barcode\": \"{{barcode}}\"\n}" },
+            "url": "{{base_url}}/stock-counts/{{stock_count_id}}/items/scan"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Yetki / İzolasyon Testleri",
+      "item": [
+        {
+          "name": "Sayıcı Şube Oluşturmaya Çalışır (403 Beklenir)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{staff_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"branch_code\": \"YETKISIZ\",\n  \"name\": \"Olmamali\"\n}" },
+            "url": "{{base_url}}/branches"
+          }
+        },
+        {
+          "name": "Diğer Şirket Admini Bu Şubeyi Görmeye Çalışır (404 Beklenir)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('404 - baska sirketin subesi gorulmemeli', () => pm.response.to.have.status(404));"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin2_token}}" }],
+            "url": "{{base_url}}/branches/{{branch_id}}"
+          }
+        },
+        {
+          "name": "Token Olmadan İstek At (401 Beklenir)",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/branches"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+product_name,product_code,barcode,expected_quantity,branch_code,warehouse_code,shelf_code
+Deneme Kraker 100 g,KRK-1001,0869111100014,12,SB-001,DP-001,A-01
+Çilekli Gofret 40 g,GOF-0040,,24,SB-001,DP-001,A-01
+Aynı Barkodlu Deneme Ürünü,DNM-0002,0869111100014,8,SB-001,DP-001,A-01
+Temizlik Bezi 5 li,TEM-5001,0869111100045,-6,SB-001,DP-001,A-01
+Sıvı Sabun 500 ml,SAB-0500,0869111100052,on iki,SB-001,DP-001,A-01
+Yanlış Şubeli Ürün,SUB-9999,0869111100069,14,SB-999,DP-001,A-01
+Yanlış Depolu Ürün,DEP-4040,0869111100076,17,SB-001,DP-404,A-01
+Yanlış Raflı Ürün,RAF-9900,0869111100083,11,SB-001,DP-001,Z-99
+,ADS-0001,0869111100090,9,SB-001,DP-001,A-01
+Rafı Boş Olan Geçerli Satır,RFZ-0010,0869111100106,13,SB-001,DP-001,
